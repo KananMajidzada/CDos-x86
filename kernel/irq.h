@@ -1,0 +1,11 @@
+#ifndef IRQ_H
+#define IRQ_H
+
+#include <stdint.h>
+
+typedef void (*irq_handler_t)(void);
+
+void irq_install(void);
+void irq_install_handler(int irq, irq_handler_t handler);
+
+#endif
