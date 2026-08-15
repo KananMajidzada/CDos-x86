@@ -14,6 +14,8 @@ a real protected-mode kernel, with two planned compatibility subsystems:
 No copyrighted Commodore or Microsoft ROM/DOS binaries are used anywhere in
 this project.
 
+Special Thanks To Duru Degirmenci <3
+
 ## Status
 
 - [x] Phase 1 -- Toolchain + boot
