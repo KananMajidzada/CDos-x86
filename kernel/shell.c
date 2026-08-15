@@ -102,7 +102,9 @@ static void cmd_help(void)
     console_print("  TYPE <file>    - print a text file\n");
     console_print("  DISKTEST       - test raw disk read/write\n");
     console_print("  CPUTEST        - run 6502 interpreter self-tests\n");
-    console_print("  C64BOOT        - enter the C64 (ESC to exit)\n");
+    console_print("\n-- C64 Develop/Debug Tools (not for release) --\n");
+    console_print("  C64BOOT        - enter the C64 (F12 to exit)\n");
+    console_print("  C64TYPE <text> - type a full line into C64, non-interactively\n");
     console_print("  C64KEY <char>  - inject one character into C64\n");
     console_print("  C64ENTER       - inject RETURN into C64\n");
     console_print("  C64RESUME      - continue C64 execution (legacy)\n");
