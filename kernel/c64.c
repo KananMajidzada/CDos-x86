@@ -87,18 +87,37 @@ struct cpu6502 *c64_get_cpu(void)
 
 static int exit_requested = 0;
 
+static uint32_t inject_call_count = 0;
+
 void c64_inject_key(char c)
 {
-    if (c == 27) { /* ESC -- reserved as the exit key, never passed to C64 */
+    inject_call_count++;
+
+    if (c == 27) {
         exit_requested = 1;
         return;
     }
 
+    /* Real C64 KERNAL doesn't use standard ASCII conventions for these --
+       translate to what CHRIN/the line editor actually expects. */
+    if (c == '\n') c = 0x0D; /* Return, not Line Feed */
+    if (c == '\b') c = 0x14; /* real DEL/INST key code, not ASCII backspace */
+
+    /* The C64's default charset only has uppercase letters natively --
+       lowercase ASCII isn't a displayable code in that mode, so it
+       silently fails to render. Force letters to uppercase to match. */
+    if (c >= 'a' && c <= 'z') c = (char)(c - 32);
+
     uint8_t count = cpu6502_read(NDX);
-    if (count >= KEYD_MAX) return; /* buffer full, drop the key like real hardware */
+    if (count >= KEYD_MAX) return;
 
     cpu6502_write((uint16_t)(KEYD + count), (uint8_t)c);
     cpu6502_write(NDX, (uint8_t)(count + 1));
+}
+
+uint32_t c64_get_inject_call_count(void)
+{
+    return inject_call_count;
 }
 
 int c64_exit_was_requested(void)

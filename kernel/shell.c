@@ -5,6 +5,7 @@
 #include "fs.h"
 #include "keyboard.h"
 #include "cpu6502_test.h"
+#include "pic.h"
 #include "c64.h"
 #include <stdint.h>
 #include <stddef.h>
@@ -234,40 +235,61 @@ static void cmd_c64boot(void)
     }
     struct cpu6502 *cpu = c64_get_cpu();
 
-    console_print("Booting... (running live -- type on your keyboard!)\n");
-    keyboard_set_c64_mode(1);
-    int max_steps = 5000000;
-    int steps = 0;
-    while (!cpu->halted && steps < max_steps) {
-        cpu6502_step(cpu);
-        steps++;
-        if (steps % 1000 == 0) {
+    console_clear();
+
+    /* Mask the keyboard IRQ -- we're switching to direct polling instead,
+       so the interrupt-driven handler shouldn't also be racing to
+       consume the same keystrokes. */
+    pic_set_mask(1);
+
+    int killed_by_f12 = 0;
+    long total_steps = 0;
+
+    long steps_since_irq = 0;
+
+    while (!cpu->halted) {
+        /* Small batch -- frequent enough to poll the keyboard responsively. */
+        for (int i = 0; i < 5000 && !cpu->halted; i++) {
+            cpu6502_step(cpu);
+            total_steps++;
+            steps_since_irq++;
+        }
+
+        /* Fire the jiffy/keyboard-scan IRQ much less often than every batch --
+           our interpreter runs far faster than real 6502 hardware, so ticking
+           the IRQ every batch made KERNAL's cursor blink toggle absurdly fast,
+           making typed characters statistically invisible mid-blink. */
+        if (steps_since_irq >= 200000) {
             cpu6502_irq(cpu);
+            steps_since_irq = 0;
+        }
+
+        char c = keyboard_poll_char();
+        if (c != 0) {
+            c64_inject_key(c);
+        }
+
+        if (keyboard_f12_was_pressed()) {
+            killed_by_f12 = 1;
+            break;
+        }
+
+        if (c64_exit_was_requested()) {
+            break;
         }
     }
-    keyboard_set_c64_mode(0);
-    console_print("Stopped after ");
-    console_print_dec((uint32_t)steps);
-    console_print(" steps.\n");
-    console_print("  PC: $");
-    console_print_hex(cpu->pc);
-    console_print("  A: ");
-    console_print_dec((uint32_t)cpu->a);
-    console_print("  X: ");
-    console_print_dec((uint32_t)cpu->x);
-    console_print("  Y: ");
-    console_print_dec((uint32_t)cpu->y);
-    console_print("  SP: ");
-    console_print_dec((uint32_t)cpu->sp);
-    console_putchar('\n');
 
-    if (steps >= max_steps) {
-        console_print("  (hit step safety cap -- possible infinite loop)\n");
+    pic_clear_mask(1); /* restore normal interrupt-driven keyboard for our own shell */
+    console_clear();
+
+    if (killed_by_f12) {
+        console_print("Exited via F12.\n");
     } else if (cpu->halted) {
-        console_print("  Halted -- check PC above; likely an unimplemented opcode.\n");
-        console_print("  Opcode at halt PC-1: ");
+        console_print("C64 halted -- opcode at PC-1: $");
         console_print_hex((uint32_t)cpu6502_read((uint16_t)(cpu->pc - 1)));
         console_putchar('\n');
+    } else {
+        console_print("Exited C64 mode.\n");
     }
 }
 
@@ -359,6 +381,40 @@ static void cmd_c64key(char *tokens[4], int count)
     console_print("' into C64 keyboard buffer.\n");
 }
 
+static void cmd_c64type(const char *line)
+{
+    /* line points into the original raw input, past "C64TYPE " --
+       inject every character, then Enter, then run the CPU forward
+       so BASIC actually processes what we just typed. */
+    struct cpu6502 *cpu = c64_get_cpu();
+
+    for (int i = 0; line[i] != '\0'; i++) {
+        c64_inject_key(line[i]);
+    }
+    c64_inject_key((char)0x0D);
+
+    console_print("Typed: ");
+    console_print(line);
+    console_putchar('\n');
+
+    int steps_since_irq = 0;
+    long steps = 0;
+    long max_steps = 5000000L;
+    while (!cpu->halted && steps < max_steps) {
+        cpu6502_step(cpu);
+        steps++;
+        steps_since_irq++;
+        if (steps_since_irq >= 1000) {
+            cpu6502_irq(cpu);
+            steps_since_irq = 0;
+        }
+    }
+
+    console_print("Ran ");
+    console_print_dec((uint32_t)steps);
+    console_print(" steps. Use C64SCREEN to see the result.\n");
+}
+
 static void cmd_c64resume(void)
 {
     struct cpu6502 *cpu = c64_get_cpu();
@@ -442,6 +498,20 @@ static void cmd_c64screen(void)
     console_print("+----------------------------------------+\n");
 }
 
+static void cmd_kbdstat(void)
+{
+    console_print("Handler calls: ");
+    console_print_dec(keyboard_get_handler_call_count());
+    console_print("\nLast scancode: $");
+    console_print_hex((uint32_t)keyboard_get_last_scancode());
+    console_print("\nRecent history (oldest to newest): ");
+    for (int i = 0; i < 64; i++) {
+        console_print_hex((uint32_t)keyboard_get_history(i));
+        console_putchar(' ');
+    }
+    console_putchar('\n');
+}
+
 static void cmd_disktest(void)
 {
     uint8_t write_buf[512];
@@ -488,6 +558,14 @@ static void cmd_clear(void)
 
 static void shell_execute(char *line)
 {
+    /* C64TYPE needs the raw remainder of the line (spaces intact),
+       so check for it BEFORE tokenize() destructively splits the
+       string on spaces. */
+    if (k_strncasecmp(line, "C64TYPE ", 8) == 0) {
+        cmd_c64type(line + 8);
+        return;
+    }
+
     char *tokens[4];
     int count = tokenize(line, tokens);
 
@@ -507,6 +585,8 @@ static void shell_execute(char *line)
         cmd_c64resume();
     } else if (k_strcasecmp(tokens[0], "C64KEY") == 0) {
         cmd_c64key(tokens, count);
+    } else if (k_strcasecmp(tokens[0], "KBDSTAT") == 0) {
+        cmd_kbdstat();
     } else if (k_strcasecmp(tokens[0], "C64BOOT") == 0) {
         cmd_c64boot();
     } else if (k_strcasecmp(tokens[0], "CPUTEST") == 0) {

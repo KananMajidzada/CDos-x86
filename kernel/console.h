@@ -10,5 +10,7 @@ void console_backspace(void);
 void console_mark_line_start(void);
 void console_print_hex(uint32_t val);
 void console_print_dec(uint32_t val);
+void console_putchar_at(int row, int col, char c);
+void console_set_hw_cursor(int row, int col);
 
 #endif

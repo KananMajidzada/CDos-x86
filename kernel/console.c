@@ -18,6 +18,20 @@ static void update_cursor(void)
     outb(0x3D5, (uint8_t)((pos >> 8) & 0xFF));
 }
 
+void console_set_hw_cursor(int row, int col)
+{
+    if (row < 0) row = 0;
+    if (row >= VGA_ROWS) row = VGA_ROWS - 1;
+    if (col < 0) col = 0;
+    if (col >= VGA_COLS) col = VGA_COLS - 1;
+
+    uint16_t pos = (uint16_t)(row * VGA_COLS + col);
+    outb(0x3D4, 0x0F);
+    outb(0x3D5, (uint8_t)(pos & 0xFF));
+    outb(0x3D4, 0x0E);
+    outb(0x3D5, (uint8_t)((pos >> 8) & 0xFF));
+}
+
 static void scroll_if_needed(void)
 {
     uint16_t *vga = VGA_MEM;
@@ -78,6 +92,13 @@ void console_backspace(void)
     cursor_pos -= 2;
     vga[cursor_pos / 2] = VGA_WHITE_ON_BLACK | ' ';
     update_cursor();
+}
+
+void console_putchar_at(int row, int col, char c)
+{
+    uint16_t *vga = VGA_MEM;
+    if (row < 0 || row >= VGA_ROWS || col < 0 || col >= VGA_COLS) return;
+    vga[row * VGA_COLS + col] = VGA_WHITE_ON_BLACK | (uint8_t)c;
 }
 
 void console_print(const char *s)

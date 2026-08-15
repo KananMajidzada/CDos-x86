@@ -19,7 +19,7 @@ disk/disk.img
 roms/*.rom
 
 # QEMU/debug artifacts
-qemu_int_log.txt
+qemu_int_log*.txt
 qemu_error.txt
 
 # OS/editor cruft
