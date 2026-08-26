@@ -2,8 +2,6 @@
 
 A bare-metal x86 hobby OS built from scratch, blending **C**64 + **DOS** + **x86**.
 
-A C64-style monitor shell (`NULL:\>` until a disk is mounted) sits on top of
-a real protected-mode kernel, with two planned compatibility subsystems:
 
 - A **C64 subsystem**: a from-scratch 6502 CPU interpreter running real,
   legally clean KERNAL/BASIC ROM images (MEGA65 Open ROMs -- see
@@ -14,7 +12,7 @@ a real protected-mode kernel, with two planned compatibility subsystems:
 No copyrighted Commodore or Microsoft ROM/DOS binaries are used anywhere in
 this project.
 
-Special Thanks To Duru Degirmenci <3
+
 
 ## Status
 
