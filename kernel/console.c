@@ -122,6 +122,18 @@ void console_print_hex(uint32_t val)
     console_print(buf);
 }
 
+void console_print_hex_w(uint32_t val, int width)
+{
+    char buf[9];
+    buf[width] = '\0';
+    const char *digits = "0123456789ABCDEF";
+    for (int i = width - 1; i >= 0; i--) {
+        buf[i] = digits[val & 0xF];
+        val >>= 4;
+    }
+    console_print(buf);
+}
+
 void console_print_dec(uint32_t val)
 {
     if (val == 0) {

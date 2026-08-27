@@ -170,11 +170,38 @@ void cpu6502_irq(struct cpu6502 *cpu)
     cpu->cycles += 7;
 }
 
+uint16_t cpu6502_trace_pc[CPU6502_TRACE_LEN];
+uint8_t  cpu6502_trace_op[CPU6502_TRACE_LEN];
+int      cpu6502_trace_idx = 0;
+uint32_t cpu6502_debug_hit_e3e0 = 0;
+uint32_t cpu6502_debug_sp_at_a06e = 0xFFFFFFFFu; /* sentinel: not yet captured */
+
+void cpu6502_trace_dump_ordered(uint16_t *pc_out, uint8_t *op_out, int count)
+{
+    for (int i = 0; i < count; i++) {
+        int idx = (cpu6502_trace_idx + CPU6502_TRACE_LEN - count + i) % CPU6502_TRACE_LEN;
+        pc_out[i] = cpu6502_trace_pc[idx];
+        op_out[i] = cpu6502_trace_op[idx];
+    }
+}
+
 void cpu6502_step(struct cpu6502 *cpu)
 {
     if (cpu->halted) return;
 
+    uint16_t pc_before = cpu->pc;
     uint8_t opcode = fetch8(cpu);
+
+    cpu6502_trace_pc[cpu6502_trace_idx] = pc_before;
+    cpu6502_trace_op[cpu6502_trace_idx] = opcode;
+    cpu6502_trace_idx = (cpu6502_trace_idx + 1) % CPU6502_TRACE_LEN;
+
+    if (pc_before == 0xE3E0) {
+        cpu6502_debug_hit_e3e0++;
+    }
+    if (pc_before == 0xA06E && cpu6502_debug_sp_at_a06e == 0xFFFFFFFFu) {
+        cpu6502_debug_sp_at_a06e = (uint32_t)cpu->sp;
+    }
 
     switch (opcode) {
 

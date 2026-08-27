@@ -39,3 +39,7 @@ iso/boot/grub/grub.cfg
 # ROM binaries copied into diskfiles/ for disk-image building -- fetch
 # fresh per README instead of committing
 diskfiles/*.ROM
+*.bak
+*.bak2
+*.bak3
+patch_*.py

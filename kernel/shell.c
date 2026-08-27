@@ -284,12 +284,40 @@ static void cmd_c64boot(void)
     pic_clear_mask(1); /* restore normal interrupt-driven keyboard for our own shell */
     console_clear();
 
+    console_print("copy_CHRGET ($E3E0) hit count: ");
+    console_print_dec(cpu6502_debug_hit_e3e0);
+    console_putchar('\n');
+
     if (killed_by_f12) {
         console_print("Exited via F12.\n");
     } else if (cpu->halted) {
-        console_print("C64 halted -- opcode at PC-1: $");
+        console_print("C64 halted -- opcode $");
         console_print_hex((uint32_t)cpu6502_read((uint16_t)(cpu->pc - 1)));
+        console_print(" at PC-1: $");
+        console_print_hex((uint32_t)(cpu->pc - 1));
+        console_print("  SP=$");
+        console_print_hex((uint32_t)cpu->sp);
+        console_print(" (");
+        console_print_dec((uint32_t)cpu->sp);
+        console_print(")\n");
+        console_print("SP at oper_cmp_eq entry ($A06E): ");
+        console_print_dec(cpu6502_debug_sp_at_a06e);
         console_putchar('\n');
+
+        console_print("Trace (oldest to newest):\n");
+        {
+            uint16_t tpc[CPU6502_TRACE_LEN];
+            uint8_t  top[CPU6502_TRACE_LEN];
+            cpu6502_trace_dump_ordered(tpc, top, CPU6502_TRACE_LEN);
+            for (int i = 0; i < CPU6502_TRACE_LEN; i++) {
+                console_print_hex_w((uint32_t)tpc[i], 4);
+                console_print(":");
+                console_print_hex_w((uint32_t)top[i], 2);
+                console_print("  ");
+                if ((i + 1) % 6 == 0) console_putchar('\n');
+            }
+            console_putchar('\n');
+        }
     } else {
         console_print("Exited C64 mode.\n");
     }
@@ -317,6 +345,24 @@ static void cmd_c64mem(char *tokens[4], int count)
             console_putchar(digits[(b >> 4) & 0xF]);
             console_putchar(digits[b & 0xF]);
             console_putchar(' ');
+        }
+        console_putchar('\n');
+    }
+}
+
+static void cmd_c64tracedump(void)
+{
+    console_print("Trace (oldest to newest):\n");
+    {
+        uint16_t tpc[CPU6502_TRACE_LEN];
+        uint8_t  top[CPU6502_TRACE_LEN];
+        cpu6502_trace_dump_ordered(tpc, top, CPU6502_TRACE_LEN);
+        for (int i = 0; i < CPU6502_TRACE_LEN; i++) {
+            console_print_hex_w((uint32_t)tpc[i], 4);
+            console_print(":");
+            console_print_hex_w((uint32_t)top[i], 2);
+            console_print("  ");
+            if ((i + 1) % 6 == 0) console_putchar('\n');
         }
         console_putchar('\n');
     }
@@ -453,8 +499,10 @@ static void cmd_c64resume(void)
     console_putchar('\n');
 
     if (cpu->halted) {
-        console_print("  Halted -- opcode at PC-1: $");
+        console_print("  Halted -- opcode $");
         console_print_hex((uint32_t)cpu6502_read((uint16_t)(cpu->pc - 1)));
+        console_print(" at PC-1: $");
+        console_print_hex((uint32_t)(cpu->pc - 1));
         console_putchar('\n');
     }
 }
@@ -575,6 +623,8 @@ static void shell_execute(char *line)
 
     if (k_strcasecmp(tokens[0], "HELP") == 0) {
         cmd_help();
+    } else if (k_strcasecmp(tokens[0], "C64TRACEDUMP") == 0) {
+        cmd_c64tracedump();
     } else if (k_strcasecmp(tokens[0], "C64TRACE") == 0) {
         cmd_c64trace(tokens, count);
     } else if (k_strcasecmp(tokens[0], "C64MEM") == 0) {
