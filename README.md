@@ -15,10 +15,10 @@ No copyrighted Commodore or Microsoft ROM/DOS binaries are used anywhere in this
 
 | Phase | Description | Status |
 |-------|-------------|--------|
-| 1 | Toolchain + boot | ✅ Complete |
+| 1 | Toolchain + boot |  Complete |
 | 2 | GDT, IDT, PIC, keyboard | ✅ Complete |
-| 3 | Console + shell (`HELP`, `PEEK`/`POKE`/`DUMP`, `CLEAR`) | ✅ Complete |
-| 4 | Disk driver + custom filesystem | ✅ Complete |
+| 3 | Console + shell (`HELP`, `PEEK`/`POKE`/`DUMP`, `CLEAR`) |  Complete |
+| 4 | Disk driver + custom filesystem |  Complete |
 | 5 | C64 subsystem | 🚧 In progress |
 | 6 | DOS subsystem | ⬜ Not started |
 
