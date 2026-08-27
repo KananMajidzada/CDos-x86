@@ -61,8 +61,13 @@ cd kernel
 
 **4. Build the disk image:**
 
+The custom filesystem limits filenames to 15 characters, so the ROMs must be
+copied in with shortened names (not their original MEGA65 filenames):
+
 ```bash
-cp ../roms/*.rom ../diskfiles/
+cp ../roms/kernal_generic.rom ../diskfiles/KERNAL.ROM
+cp ../roms/basic_generic.rom ../diskfiles/BASIC.ROM
+cp ../roms/chargen_openroms.rom ../diskfiles/CHARGEN.ROM
 python3 ../tools/build_disk.py ../diskfiles ../disk/disk.img 16
 ```
 
