@@ -16,11 +16,11 @@ No copyrighted Commodore or Microsoft ROM/DOS binaries are used anywhere in this
 | Phase | Description | Status |
 |-------|-------------|--------|
 | 1 | Toolchain + boot |  Complete |
-| 2 | GDT, IDT, PIC, keyboard | ✅ Complete |
+| 2 | GDT, IDT, PIC, keyboard |  Complete |
 | 3 | Console + shell (`HELP`, `PEEK`/`POKE`/`DUMP`, `CLEAR`) |  Complete |
 | 4 | Disk driver + custom filesystem |  Complete |
-| 5 | C64 subsystem | 🚧 In progress |
-| 6 | DOS subsystem | ⬜ Not started |
+| 5 | C64 subsystem |  In progress |
+| 6 | DOS subsystem |  Not started |
 
 **Phase 5 detail:** the full legal 6502 instruction set is implemented, and the real KERNAL/BASIC ROMs boot to a working `READY.` prompt. Remaining work: `.PRG`/`.T64` loaders and illegal-opcode support.
 
